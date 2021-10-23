@@ -4,18 +4,18 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.RoundingMode
 
-fun fromDec(numDec: String, tgtBase: Int):String {
-    var buffer = BigInteger(numDec)
+fun fromDec(num: String, tgtBase: Int):String {
+    var numDec = BigInteger(num)
     var numTgt = ""
-    val numberToSymbolStep = 87
-    if (buffer.toInt() == 0) numTgt = "0"
-    while (buffer != BigInteger.ZERO) {
-        if (buffer % tgtBase.toBigInteger() >= BigInteger.TEN) {
-            numTgt = ((buffer % tgtBase.toBigInteger()).toInt() + numberToSymbolStep).toChar().uppercaseChar().toString() + numTgt
-            buffer /= tgtBase.toBigInteger()
+    val numberToSymbolStep = 87                   // In Unicode 'a' code equal 97, so to get 'a' from number 10 you should add this step == 87. This is also true for subsequent characters
+    if (numDec.toInt() == 0) numTgt = "0"
+    while (numDec != BigInteger.ZERO) {
+        if (numDec % tgtBase.toBigInteger() >= BigInteger.TEN) {
+            numTgt = ((numDec % tgtBase.toBigInteger()).toInt() + numberToSymbolStep).toChar().uppercaseChar().toString() + numTgt
+            numDec /= tgtBase.toBigInteger()
         } else {
-            numTgt = (buffer % tgtBase.toBigInteger()).toInt().digitToChar().toString() + numTgt  // Считает остаток от деления переменной на базис системы счисления и записывает его первым символом в строке
-            buffer /= tgtBase.toBigInteger() // Результат целочисленного деления переменной на базис системы счисления используется для дальнейших вычислений
+            numTgt = (numDec % tgtBase.toBigInteger()).toInt().digitToChar().toString() + numTgt
+            numDec /= tgtBase.toBigInteger()
         }
     }
     return numTgt
@@ -36,22 +36,26 @@ fun toDec(numSrs: String, srsBase: Int):String {
 fun fractionalToTgt (numFractional: String, tgtBase: Int, srsBase: Int): String {
     var fractionalDec = BigDecimal.ZERO
     var pow: BigDecimal
-    for (i in 1..numFractional.length) {
+    for (i in 1..numFractional.length) {          // Converting from Sourse base to decimal
         pow = BigDecimal.ONE.setScale(6)
         repeat(i) {pow /= srsBase.toBigDecimal()}
         fractionalDec += numFractional[i-1].digitToInt(srsBase).toBigDecimal() * pow
     }
     var num = fractionalDec.setScale(5, RoundingMode.CEILING)
     var fractionalTgt = ""
-    while (num - num.toBigInteger().toBigDecimal() != BigDecimal.ZERO) {
+    val numberToSymbolStep = 87    // Using the same step for the fractional part
+    while (num - num.toBigInteger().toBigDecimal() != BigDecimal.ZERO) {      // Converting from decimal to Target base
         num *= tgtBase.toBigDecimal()
         fractionalTgt +=  if (num.toBigInteger() < BigInteger.TEN) {
             num.toBigInteger()
         } else {
-            (num.toBigInteger().toInt() + 87).toChar().uppercaseChar().toString()
+            (num.toBigInteger().toInt() + numberToSymbolStep).toChar().uppercaseChar().toString()
         }
         if (fractionalTgt.length == 5) break
         num -= num.toBigInteger().toBigDecimal()
+    }
+    while (fractionalTgt.last() == '0') {
+        fractionalTgt = fractionalTgt.substring(0, fractionalTgt.length - 1)  // Cut '0' at the end of the number
     }
     return  fractionalTgt
 }
@@ -71,14 +75,14 @@ fun main() {
             print("Enter number in base $srsBase to convert to base $tgtBase (To go back type /back) > ")
             input = readLine()!!
             if (input == "/back") break
-            if ("." in input) {
+            if ("." in input) {                   // If number has fractional part
                 numInt = input.substringBefore(".")
                 numFractional = input.substringAfter(".")
                 numTgtInt = fromDec(toDec(numInt, srsBase), tgtBase)
                 numTgtFractional =  fractionalToTgt(numFractional, tgtBase, srsBase)
                 println("Conversion result: $numTgtInt.$numTgtFractional\n")
             } else {
-                numInt = input
+                numInt = input                   // If number is Integer
                 numTgtInt = fromDec(toDec(numInt, srsBase), tgtBase)
                 println("Conversion result: $numTgtInt\n")
             }
